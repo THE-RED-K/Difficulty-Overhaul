@@ -1,0 +1,23 @@
+{
+  "difficulty_overhaul.mode.peaceful": "和平",
+  "difficulty_overhaul.mode.peaceful.info": "不会生成敌对生物，只会生成一些中立生物。饥饿值不会下降，生命值会随时间恢复。",
+  "difficulty_overhaul.mode.casual": "休闲",
+  "difficulty_overhaul.mode.casual.info": "敌对生物会生成，但造成的伤害减半。饥饿值会下降，生命值会被消耗殆尽。",
+  "difficulty_overhaul.mode.easy": "简单",
+  "difficulty_overhaul.mode.easy.info": "敌对生物会生成，但造成的伤害更少。饥饿值会下降，生命值会被消耗殆尽。",
+  "difficulty_overhaul.mode.normal": "普通",
+  "difficulty_overhaul.mode.normal.info": "敌对生物会生成并造成标准伤害。饥饿值会下降，生命值会被消耗殆尽。",
+  "difficulty_overhaul.mode.advanced": "进阶",
+  "difficulty_overhaul.mode.advanced.info": "敌对生物造成的伤害提高25%，生命值也更高。饥饿值会下降，生命值会被消耗殆尽。",
+  "difficulty_overhaul.mode.hard": "困难",
+  "difficulty_overhaul.mode.hard.info": "敌对生物造成的伤害提高50%，生命值也更高。饥饿值会下降，生命值会被消耗殆尽。",
+  "difficulty_overhaul.mode.expert": "专家",
+  "difficulty_overhaul.mode.expert.info": "敌对生物造成的伤害提高75%，生命值更高，护甲也更结实。饥饿值会下降，生命值会被消耗殆尽。",
+  "difficulty_overhaul.mode.master": "大师",
+  "difficulty_overhaul.mode.master.info": "敌对生物造成的伤害和生命值翻倍，护甲能轻松挡下你的攻击。饥饿值会下降，生命值会被消耗殆尽。",
+  "difficulty_overhaul.mode.grandmaster": "宗师",
+  "difficulty_overhaul.mode.grandmaster.info": "敌对生物造成的伤害和生命值提高2.25倍，护甲几乎坚不可摧。饥饿值会下降，生命值会被消耗殆尽。",
+  "difficulty_overhaul.mode.god": "神明",
+  "difficulty_overhaul.mode.god.info": "整个世界都在与你为敌。生物造成2.5倍伤害，护甲坚不可摧，饥饿也永不停歇。唯有强者方能幸存。",
+  "difficulty_overhaul.commands.invalid_mode": "未知的难度模式。可用模式：peaceful, casual, easy, normal, advanced, hard, expert, master, grandmaster, god"
+}

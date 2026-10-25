@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Specification-Title: cosmopolitan
+Specification-Vendor: Gumillea
+Specification-Version: 1
+Implementation-Title: cosmopolitan
+Implementation-Version: com.gumillea
+Implementation-Vendor: Gumillea
+Implementation-Timestamp: 2026-07-05T02:13:59+0800
+MixinConfigs: cosmopolitan.mixins.json
+

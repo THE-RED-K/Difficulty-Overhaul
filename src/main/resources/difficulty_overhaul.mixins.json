@@ -1,0 +1,24 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.difficultyoverhaul.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "difficulty_overhaul.refmap.json",
+  "mixins": [
+    "DifficultyInstanceMixin",
+    "DifficultyCommandMixin",
+    "MobMixin",
+    "PlayerHurtMixin"
+  ],
+  "client": [
+    "OptionsScreenMixin",
+    "CreateWorldScreenMixin",
+    "CreateWorldScreenGameTabMixin",
+    "GridLayoutAccessor",
+    "GridLayoutTabAccessor",
+    "GridLayoutCellInhabitantAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
