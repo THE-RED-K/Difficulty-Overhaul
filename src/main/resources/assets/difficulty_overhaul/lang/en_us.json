@@ -1,0 +1,23 @@
+{
+  "difficulty_overhaul.mode.peaceful": "Peaceful",
+  "difficulty_overhaul.mode.peaceful.info": "No hostile mobs spawn and only some neutral mobs spawn. Hunger bar doesn't deplete and health replenishes over time.",
+  "difficulty_overhaul.mode.casual": "Casual",
+  "difficulty_overhaul.mode.casual.info": "Hostile mobs spawn but deal half damage. Hunger bar depletes and drains all health.",
+  "difficulty_overhaul.mode.easy": "Easy",
+  "difficulty_overhaul.mode.easy.info": "Hostile mobs spawn but deal less damage. Hunger bar depletes and drains all health.",
+  "difficulty_overhaul.mode.normal": "Normal",
+  "difficulty_overhaul.mode.normal.info": "Hostile mobs spawn and deal standard damage. Hunger bar depletes and drains all health.",
+  "difficulty_overhaul.mode.advanced": "Advanced",
+  "difficulty_overhaul.mode.advanced.info": "Hostile mobs deal 25% more damage and have more health. Hunger bar depletes and drains all health.",
+  "difficulty_overhaul.mode.hard": "Hard",
+  "difficulty_overhaul.mode.hard.info": "Hostile mobs deal 50% more damage and have more health. Hunger bar depletes and drains all health.",
+  "difficulty_overhaul.mode.expert": "Expert",
+  "difficulty_overhaul.mode.expert.info": "Hostile mobs deal 75% more damage, have more health, and wear tougher armor. Hunger bar depletes and drains all health.",
+  "difficulty_overhaul.mode.master": "Master",
+  "difficulty_overhaul.mode.master.info": "Hostile mobs deal double damage and have double health. Their armor shrugs off your blows. Hunger bar depletes and drains all health.",
+  "difficulty_overhaul.mode.grandmaster": "Grandmaster",
+  "difficulty_overhaul.mode.grandmaster.info": "Hostile mobs deal 2.25x damage and have 2.25x health. Their armor is nearly impenetrable. Hunger bar depletes and drains all health.",
+  "difficulty_overhaul.mode.god": "God",
+  "difficulty_overhaul.mode.god.info": "The world itself fights back. Mobs deal 2.5x damage, their armor is unbreakable, and hunger never rests. Only the worthy survive.",
+  "difficulty_overhaul.commands.invalid_mode": "Unknown difficulty mode. Valid modes: peaceful, casual, easy, normal, advanced, hard, expert, master, grandmaster, god"
+}

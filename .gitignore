@@ -1,0 +1,31 @@
+# eclipse
+bin
+*.launch
+.settings
+.metadata
+.classpath
+.project
+
+# idea
+out
+*.ipr
+*.iws
+*.iml
+.idea
+
+# gradle
+build
+.gradle
+
+# other
+eclipse
+run
+
+# Forge MDK 生成物
+/run-data/
+/run/
+/gradle/
+/.idea/
+/build/
+/.gradle/
+/src/generated/resources/.cache/

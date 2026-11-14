@@ -1,0 +1,53 @@
+# 模组元数据文件。此文件中的版本与名称占位符由 build.gradle 的 processResources 自动替换。
+modLoader="javafml" #mandatory
+# 加载器版本范围（由 gradle.properties 注入）
+loaderVersion="${loader_version_range}" #mandatory
+# 许可证
+license="${mod_license}" #mandatory
+# 若模组纯客户端且无多人功能，可设为 true
+#clientSideOnly=true #optional - defaults to false if absent
+
+[[mods]] #mandatory
+# 模组 id（由 gradle.properties 注入）
+modId="${mod_id}" #mandatory
+# 模组版本
+version="${mod_version}" #mandatory
+# 显示名称
+displayName="${mod_name}" #mandatory
+# 更新检查 JSON 地址（可选）
+#updateJSONURL="https://change.me.example.invalid/updates.json" #optional
+# 主页（可选）
+#displayURL="https://change.me.to.your.mods.homepage.example.invalid/" #optional
+# logo 文件（可选，置于 jar 根目录）
+#logoFile="examplemod.png" #optional
+# 作者
+authors="${mod_authors}" #optional
+# 简介（可选）
+#credits="" #optional
+
+# 描述（多行，由 gradle.properties 注入）
+description='''${mod_description}'''
+
+# 依赖 Forge（强制）
+[[dependencies.${mod_id}]]
+    modId="forge" #mandatory
+    mandatory=true #mandatory
+    versionRange="${forge_version_range}" #mandatory
+    ordering="NONE"
+    side="BOTH"
+
+# 依赖 Minecraft（强制）
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+# 软依赖示例（如 Curios）：mandatory=false 时未安装也能运行
+# [[dependencies.${mod_id}]]
+#     modId="curios"
+#     mandatory=false
+#     versionRange="[1.20.1,)"
+#     ordering="AFTER"
+#     side="BOTH"

@@ -1,0 +1,197 @@
+// ============================================================
+// Forge 1.20.1 通用 MDK 构建脚本（基于 New Armor System 整理）
+// 新建模组时通常只需修改 gradle.properties，无需改动本文件。
+// ============================================================
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '6.0.54'
+    id 'org.parchmentmc.librarian.forgegradle' version '1.2.0.7-dev-SNAPSHOT'
+    // MixinGradle 0.7.38：自动管理 Mixin AP 参数、refmap、reobf 钩子、jar MANIFEST MixinConfigs 写入
+    id 'org.spongepowered.mixin' version '0.7.38'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+// Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+minecraft {
+    // 映射通道与版本见 gradle.properties（支持 official / parchment）
+    mappings channel: mapping_channel, version: mapping_version
+
+    // 此属性使 ProcessResources 任务在 IDE 启动游戏前也作用于 IDE 输出位置，必须为 true
+    copyIdeResources = true
+
+    // 如使用 Access Transformer，取消注释并在 META-INF/accesstransformer.cfg 放置文件
+    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    runs {
+        // 对所有 run 配置生效
+        configureEach {
+            workingDirectory project.file('run')
+
+            // 本地离线资源目录（可选）。
+            // 若你的 .minecraft 资产目录不在默认位置，可设置环境变量，例如：
+            // environment 'assets_root', file('D:/path/to/.minecraft/assets').absolutePath
+            // 不设置时 ForgeGradle 会在首次运行时自动下载资源。
+
+            // 推荐日志配置
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        server {
+            property 'forge.enabledGameTestNamespaces', mod_id
+            args '--nogui'
+        }
+
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        data {
+            workingDirectory project.file('run-data')
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+// 包含数据生成器输出的资源
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    // ForgeGradle 会自动添加 Forge maven 与 Maven Central
+
+    // 软依赖 Maven 示例（如 Curios）：
+    // maven {
+    //     name = 'Curios'
+    //     url = uri('https://maven.theillusivec4.top/')
+    // }
+
+    // 本地 mod jar 依赖（放入 ./libs 目录）：
+    // flatDir {
+    //     dir 'libs'
+    // }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // Mixin 运行时依赖 + 注解处理器（配合 MixinGradle 使用，缺一不可）
+    implementation 'org.spongepowered:mixin:0.8.5'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    // 软依赖示例（compileOnly 仅编译期联动，运行时用 ModList.isLoaded 保护）：
+    // compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
+}
+
+// MixinGradle 标准配置：
+//   add    = 把 refmap 写入最终 jar
+//   config = 声明 mixin 配置，插件将其写入 jar MANIFEST 的 MixinConfigs 属性（prod 注册）
+// refmap 文件名须与 resources 下 ${mod_id}.mixins.json 中 "refmap" 字段一致
+mixin {
+    add sourceSets.main, "${mod_id}.refmap.json"
+    config "${mod_id}.mixins.json"
+}
+
+// 将 gradle.properties 中的属性替换进 mods.toml / pack.mcmeta 的 ${} 占位符
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+            forge_version: forge_version, forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_authors, mod_description: mod_description,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    // 防御性设置：若打包出现重复 entry（如 refmap），取一份即可
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+
+    // 打包后自动反混淆（发布到生产环境的 jar 需要 reobf）
+    finalizedBy 'reobfJar'
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+// 离线开发优化（可选）：
+// 若你本地已有 .minecraft 资源目录并通过 environment 'assets_root' 指定，
+// 可取消注释以下代码跳过 downloadAssets 下载任务，避免每次启动重复下载。
+// gradle.projectsEvaluated {
+//     def removeDep = { Task t, String depName ->
+//         if (t == null) return
+//         t.dependsOn.removeAll { dep ->
+//             (dep instanceof Task && dep.name.equalsIgnoreCase(depName)) ||
+//             (dep instanceof String && dep.equalsIgnoreCase(depName))
+//         }
+//     }
+//     def killDownloadAssetsFor = { String taskName ->
+//         def t = tasks.findByName(taskName)
+//         removeDep(t, "downloadAssets")
+//     }
+//     ["prepareRuns", "prepareRunClient", "prepareRunClientCompile",
+//      "prepareRunServer", "prepareRunData", "prepareRunDataCompile",
+//      "runClient", "runData", "runServer", "rundata", "runclient", "runserver"
+//     ].each { killDownloadAssetsFor(it) }
+// }
+// tasks.matching { it.name.equalsIgnoreCase("downloadAssets") }.configureEach {
+//     enabled = false
+// }
+
+// 编译编码：保持 UTF-8（Mixin AP 参数 / refmap / reobf 映射由 MixinGradle 自动配置）
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    // Mixin APT：跳过编译期 target 校验（-AdisableTargetValidator）。
+    // 本模组的 @ModifyArg 注入点是 Forge patch 版运行时字节码中才存在的调用
+    // （如 Player.hurt 内内联的 LivingEntity.hurt），编译期 classpath 为原版字节码，
+    // 静态校验会误报 "Cannot resolve any target instructions"；运行时注入不受影响。
+    // 注意：禁止使用 remap=false 回避，此方案不涉及 remap。
+    options.compilerArgs += ['-AdisableTargetValidator=true']
+}
