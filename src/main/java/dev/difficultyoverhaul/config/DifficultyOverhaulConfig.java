@@ -37,6 +37,19 @@ public final class DifficultyOverhaulConfig {
     /** 客户端记住的模式（字符串键） */
     public static final ForgeConfigSpec.ConfigValue<String> CLIENT_MODE;
 
+    /** 创建世界界面游戏规则默认值功能总开关（默认开启） */
+    public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_DEFAULTS_ENABLED;
+    /** 保留背包 keepInventory 默认值（默认 true） */
+    public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_KEEP_INVENTORY;
+    /** 生物破坏 mobGriefing 默认值（默认 false） */
+    public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_MOB_GRIEFING;
+    /** 无差别愤怒 universalAnger 默认值（默认 false，即维持原版） */
+    public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_UNIVERSAL_ANGER;
+    /** 宽恕死亡玩家 forgiveDeadPlayers 默认值（默认 false，即维持原版） */
+    public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_FORGIVE_DEAD_PLAYERS;
+    /** 钱包模组 keepWallet 默认值（默认 true；需可选前置 lightmanscurrency） */
+    public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_KEEP_WALLET;
+
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -77,6 +90,32 @@ public final class DifficultyOverhaulConfig {
                 .comment("客户端记住的当前模式（创建世界界面与选项界面的初始值；",
                         "集成服务器新建世界时以此作为初始模式并写入服务器配置）")
                 .define("mode", DifficultyLevel.NORMAL.getKey());
+
+        clientBuilder.comment("创建世界/导入旧世界时默认游戏规则的预设值，",
+                        "在“选项 / 游戏规则”界面进世界前即可看到并可修改（不剥夺选择权）。")
+                .push("world_creation_defaults");
+        WORLD_CREATION_DEFAULTS_ENABLED = clientBuilder
+                .comment("创建世界界面游戏规则预设总开关，关闭即回到原版新建世界默认值。")
+                .define("enabled", true);
+        WORLD_CREATION_KEEP_INVENTORY = clientBuilder
+                .comment("保留背包（keepInventory）游戏规则默认值。默认 true。")
+                .define("keep_inventory", true);
+        WORLD_CREATION_MOB_GRIEFING = clientBuilder
+                .comment("生物破坏（mobGriefing）游戏规则默认值。默认 false。")
+                .define("mob_griefing", false);
+        WORLD_CREATION_UNIVERSAL_ANGER = clientBuilder
+                .comment("无差别愤怒（universalAnger）游戏规则默认值；",
+                        "true 时敌对生物会无视激怒来源，攻击半径内任意玩家。默认 false（维持原版）。")
+                .define("universal_anger", false);
+        WORLD_CREATION_FORGIVE_DEAD_PLAYERS = clientBuilder
+                .comment("宽恕死亡玩家（forgiveDeadPlayers）游戏规则默认值；",
+                        "true 时怪物在目标玩家死亡后不再持续愤怒。默认 false（维持原版）。")
+                .define("forgive_dead_players", false);
+        WORLD_CREATION_KEEP_WALLET = clientBuilder
+                .comment("钱包模组（Lightman's Currency）keepWallet 游戏规则默认值；",
+                        "仅当 lightmanscurrency 作为可选前置装载时生效。默认 true。")
+                .define("keep_wallet", true);
+        clientBuilder.pop();
         CLIENT_SPEC = clientBuilder.build();
     }
 

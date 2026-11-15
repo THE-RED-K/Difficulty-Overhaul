@@ -80,16 +80,10 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 repositories {
     // ForgeGradle 会自动添加 Forge maven 与 Maven Central
 
-    // 软依赖 Maven 示例（如 Curios）：
-    // maven {
-    //     name = 'Curios'
-    //     url = uri('https://maven.theillusivec4.top/')
-    // }
-
-    // 本地 mod jar 依赖（放入 ./libs 目录）：
-    // flatDir {
-    //     dir 'libs'
-    // }
+    // 本地扁平目录：存放可选前置 mod 的编译期依赖（如 Lightman's Currency，见 ./libs）
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 dependencies {
@@ -99,8 +93,10 @@ dependencies {
     implementation 'org.spongepowered:mixin:0.8.5'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
-    // 软依赖示例（compileOnly 仅编译期联动，运行时用 ModList.isLoaded 保护）：
-    // compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
+    // 软依赖（compileOnly 仅编译期联动，运行时用 try/catch 保护，不打包、不强制）：
+    // Lightman's Currency（钱包模组）—— 提供 keepWallet 游戏规则联动。
+    // 通过 flatDir 本地仓库 + fg.deobf 声明命名依赖，IDE 与 dev 运行均可正确解析与反混淆。
+    compileOnly fg.deobf("lightmanscurrency:lightmanscurrency:1.20.1-2.3.0.6")
 }
 
 // MixinGradle 标准配置：
