@@ -25,9 +25,9 @@ public final class DifficultyOverhaulServer {
     /**
      * 集成服务器新建世界时待应用的模式。
      * 由创建世界界面点击"创建"时记录（客户端线程），服务器线程启动时消费后清空。
-     * 注意：不能依赖"服务器配置是否已持久化"来判断新建世界——
-     * Forge 的 SERVER 配置是全局共享的，配置文件一旦存在（任何旧世界创建过），
-     * 之后新建世界就会沿用旧模式、忽略创建界面选择的模式。
+     * 注意：不能依赖"模式配置是否已持久化"来判断新建世界——
+     * Forge 的 COMMON 配置在 config/ 目录下为全局共享，一旦生成即存在，
+     * 之后新建世界就会沿用已有模式、忽略创建界面选择的模式。
      */
     private static volatile DifficultyLevel pendingNewWorldMode;
 

@@ -7,10 +7,15 @@ import java.util.EnumMap;
 import java.util.Map;
 
 /**
- * 模组服务端配置（自动从服务器同步到客户端）。
+ * 模组通用（COMMON，服务器权威）配置，固定生成在 {@code .minecraft/config} 的
+ * {@code difficulty_overhaul-common.toml}，便于整合包作者直接编辑。
  * <p>
  * 包含：当前模式、每个模式的伤害/血量/护甲倍率，
  * 以及三个全局统一倍率开关与对应的全局倍率。
+ * <p>
+ * 说明：采用 COMMON 而非 SERVER——SERVER 会按世界写入存档 serverconfig、且在 config
+ * 目录不残留模板；COMMON 让配置固定落在 config 目录。代价是 COMMON 不会自动同步到
+ * 联机客户端（各自读本地文件）。
  */
 public final class DifficultyOverhaulConfig {
     public static final ForgeConfigSpec SPEC;
