@@ -109,8 +109,8 @@ public final class DifficultyOverhaulConfig {
                 .define("universal_anger", false);
         WORLD_CREATION_FORGIVE_DEAD_PLAYERS = clientBuilder
                 .comment("宽恕死亡玩家（forgiveDeadPlayers）游戏规则默认值；",
-                        "true 时怪物在目标玩家死亡后不再持续愤怒。默认 false（维持原版）。")
-                .define("forgive_dead_players", false);
+                        "true 时怪物在目标玩家死亡后不再持续愤怒。默认 true（维持原版）。")
+                .define("forgive_dead_players", true);
         WORLD_CREATION_KEEP_WALLET = clientBuilder
                 .comment("钱包模组（Lightman's Currency）keepWallet 游戏规则默认值；",
                         "仅当 lightmanscurrency 作为可选前置装载时生效。默认 true。")
