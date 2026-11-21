@@ -25,7 +25,7 @@ import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
  *     <li>world_creation_defaults.keep_inventory（保留背包，默认 true）。</li>
  *     <li>world_creation_defaults.mob_griefing（生物破坏，默认 false）。</li>
  *     <li>world_creation_defaults.universal_anger（无差别愤怒，默认 false）。</li>
- *     <li>world_creation_defaults.forgive_dead_players（宽恕死亡玩家，默认 false）。</li>
+ *     <li>world_creation_defaults.forgive_dead_players（宽恕死亡玩家，默认 true）。</li>
  *     <li>world_creation_defaults.keep_wallet（钱包模组 keepWallet，默认 true；可选前置 lightmanscurrency）。</li>
  * </ul>
  *
@@ -54,7 +54,7 @@ public abstract class WorldCreationDefaultsMixin {
             gr.getRule(GameRules.RULE_MOBGRIEFING).set(DifficultyOverhaulConfig.WORLD_CREATION_MOB_GRIEFING.get(), null);
             // 无差别愤怒：默认由配置决定（默认 false）
             gr.getRule(GameRules.RULE_UNIVERSAL_ANGER).set(DifficultyOverhaulConfig.WORLD_CREATION_UNIVERSAL_ANGER.get(), null);
-            // 宽恕死亡玩家：默认由配置决定（默认 false）
+            // 宽恕死亡玩家：默认由配置决定（默认 true，即维持原版）
             gr.getRule(GameRules.RULE_FORGIVE_DEAD_PLAYERS).set(DifficultyOverhaulConfig.WORLD_CREATION_FORGIVE_DEAD_PLAYERS.get(), null);
             // 钱包模组 keepWallet：lightmanscurrency 为可选前置，未加载时保持默认。
             // 注意：这里必须用反射访问 ModGameRules.KEEP_WALLET，不能出现对 lightmanscurrency
