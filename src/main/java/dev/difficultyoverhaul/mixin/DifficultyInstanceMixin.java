@@ -1,6 +1,7 @@
 package dev.difficultyoverhaul.mixin;
 
 import dev.difficultyoverhaul.DifficultyLevel;
+import dev.difficultyoverhaul.api.MixinPriorities;
 import dev.difficultyoverhaul.config.DifficultyOverhaulConfig;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
@@ -19,11 +20,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 这使游戏内所有按难度分支的逻辑（特殊技能、装备掉落、刷怪等，含其他模组的困难内容）
  * 一律按困难模式判定。有效难度、特殊倍率等字段均由基础难度派生，因此一处修改全局生效。
  * <p>
+ * 本类含接管型 {@code @Overwrite}（{@code calculateDifficulty}），按 {@link MixinPriorities}
+ * 惯例取最低优先级 {@code TAKE_OVER_FINAL}：接管体最先写入，其它模组的注入仍可叠加其上；
+ * 本类的 {@code @Inject} / {@code @ModifyVariable} 也随之最先应用，取消式注入先执行，
+ * 其它模组更高优先级的注入仍可在其返回值上继续改写（语义不受影响）。
+ * <p>
  * 1.21.1 中 {@link DifficultyInstance} 构造函数签名由 1.20.1 的
  * {@code (Difficulty, Difficulty, long, long, float)} 简化为 {@code (Difficulty, long, long, float)}，
  * 第一个参数仍为基础难度（base），因此 ordinal = 0 的注入点不变。
  */
-@Mixin(DifficultyInstance.class)
+@Mixin(value = DifficultyInstance.class, priority = MixinPriorities.TAKE_OVER_FINAL)
 public abstract class DifficultyInstanceMixin {
 
     @ModifyVariable(method = "<init>", at = @At("HEAD"), argsOnly = true, ordinal = 0)
