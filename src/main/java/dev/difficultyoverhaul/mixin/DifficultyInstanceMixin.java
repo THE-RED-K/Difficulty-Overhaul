@@ -41,9 +41,11 @@ public abstract class DifficultyInstanceMixin {
     }
 
     /**
-     * 原版 calculateDifficulty 存在两处“拍脑袋”分支（HARD 起步 0.75/其他 1.0、
+     * 原版 calculateDifficulty 存在两处“拍脑袋”分支（HARD 1.0/其他 0.75、
      * EASY 额外 *0.5），这些分支依赖不可信的世界难度与本地当年月相，会让新版
      * 世界开通时难度漂移。此处移除这两处分支并使本地难度与进区块时间解耦。
+     * @author THEREDK
+     * @reason 使用 @Overwrite 彻底接管该方法
      */
     @Overwrite
     private float calculateDifficulty(Difficulty difficulty, long levelTime, long chunkInhabitedTime, float moonPhaseFactor) {
