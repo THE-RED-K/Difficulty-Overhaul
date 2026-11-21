@@ -83,7 +83,7 @@ public final class DifficultyOverhaulConfig {
     public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_MOB_GRIEFING;
     /** 无差别愤怒 universalAnger 默认值（默认 false，即维持原版） */
     public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_UNIVERSAL_ANGER;
-    /** 宽恕死亡玩家 forgiveDeadPlayers 默认值（默认 false，即维持原版） */
+    /** 宽恕死亡玩家 forgiveDeadPlayers 默认值（默认 true，即维持原版） */
     public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_FORGIVE_DEAD_PLAYERS;
     /** 钱包模组 keepWallet 默认值（默认 true；需可选前置 lightmanscurrency） */
     public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_KEEP_WALLET;
