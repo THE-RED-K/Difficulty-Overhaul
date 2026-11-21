@@ -10,17 +10,27 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.common.Tags;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /**
- * 服务器侧逻辑：模式切换、难度强制与 /difficulty 命令注册。
+ * 服务器侧逻辑：模式切换、难度强制、/difficulty 命令注册与模式随进度自动演进。
  */
 public final class DifficultyOverhaulServer {
     private static final SimpleCommandExceptionType ERROR_INVALID_MODE =
             new SimpleCommandExceptionType(Component.translatable("difficulty_overhaul.commands.invalid_mode"));
+    private static final SimpleCommandExceptionType ERROR_DIFFICULTY_LOCKED =
+            new SimpleCommandExceptionType(Component.translatable("difficulty_overhaul.commands.difficulty_locked"));
 
     /**
      * 集成服务器新建世界时待应用的模式。
@@ -45,7 +55,7 @@ public final class DifficultyOverhaulServer {
      * 新建世界（创建世界界面刚创建）时以创建界面选择的模式为初始模式；
      * 其余情况（加载已有世界/局域网/专用服务器）沿用服务器配置中的模式。
      * <p>
-     * 两种分支都统一走 {@link #setMode}，确保客户端记忆（CLIENT_MODE）同步，
+     * 两种分支都统一走 {@link #applyMode}，确保客户端记忆（CLIENT_MODE）同步，
      * 否则创建世界界面会显示与选项界面/当前生效模式不一致的旧难度。
      */
     @SubscribeEvent
@@ -55,22 +65,103 @@ public final class DifficultyOverhaulServer {
             // 单机/局域网且刚由创建世界界面创建：采用创建界面选择的模式并持久化
             DifficultyLevel mode = pendingNewWorldMode;
             pendingNewWorldMode = null;
-            setMode(server, mode);
+            applyMode(server, mode);
             return;
         }
         // 加载已有世界/专用服务器：沿用服务器配置中的模式（顺带同步客户端记忆）
-        setMode(server, DifficultyOverhaulConfig.getMode());
+        applyMode(server, DifficultyOverhaulConfig.getMode());
+    }
+
+    /**
+     * 模式随进度自动演进：监听生物死亡事件，击杀来源为玩家且被杀生物属于触发源时，
+     * 将模式沿难度方向提升一档（Enum 顺序）。
+     * 和平模式自动禁用演进（见 {@link DifficultyOverhaulConfig#autoProgressionActive}），
+     * 最高档（神明）封顶不再提升。
+     */
+    @SubscribeEvent
+    public static void onLivingDeath(LivingDeathEvent event) {
+        if (!DifficultyOverhaulConfig.autoProgressionActive()) {
+            return;
+        }
+        LivingEntity killed = event.getEntity();
+        if (killed.level().isClientSide) {
+            return;
+        }
+        // 仅统计"玩家击败"的击杀，避免环境伤害/指令误杀导致难度失控
+        Entity killer = event.getSource().getEntity();
+        if (!(killer instanceof Player)) {
+            return;
+        }
+        if (!isProgressionTrigger(killed)) {
+            return;
+        }
+        MinecraftServer server = killed.level().getServer();
+        if (server == null) {
+            return;
+        }
+        DifficultyLevel current = DifficultyOverhaulConfig.getMode();
+        DifficultyLevel next = nextProgressionLevel(current);
+        if (next == null) {
+            // 已处于最高档，仅提醒
+            server.getPlayerList().broadcastSystemMessage(
+                    Component.translatable("difficulty_overhaul.progression.max"), false);
+            return;
+        }
+        applyMode(server, next);
+        server.getPlayerList().broadcastSystemMessage(
+                Component.translatable("difficulty_overhaul.progression.level_up", next.getDisplayName()), false);
+    }
+
+    /**
+     * 判定被杀生物是否属于自动演进的触发源：
+     * forge:bosses 标签（受开关控制，含整合包追加的监守者/远古守卫者等）
+     * 或配置列表中的注册 ID（不受标签开关影响，填注册 ID）。
+     */
+    private static boolean isProgressionTrigger(LivingEntity killed) {
+        return (DifficultyOverhaulConfig.useForgeBossesTag()
+                && killed.getType().is(Tags.EntityTypes.BOSSES))
+                || autoProgressionBossListContains(killed.getType());
+    }
+
+    private static boolean autoProgressionBossListContains(EntityType<?> type) {
+        ResourceLocation key = ForgeRegistries.ENTITY_TYPES.getKey(type);
+        return key != null && DifficultyOverhaulConfig.autoProgressionBosses().contains(key.toString());
+    }
+
+    /**
+     * 沿 Enum 顺序取下一档模式；已是最高档（神明）时返回 null。
+     * <p>
+     * 注意：演进沿 {@link DifficultyLevel#values()} 的声明顺序（和平最低、神明最高）。
+     * 神明（GOD）作为最高档被显式封顶：继续击杀 Boss 不再提升模式，也不会产生越界。
+     */
+    private static DifficultyLevel nextProgressionLevel(DifficultyLevel current) {
+        DifficultyLevel[] values = DifficultyLevel.values();
+        // 防御：即使枚举扩展（在神明之后新增），取名 logical last 也视为最高档
+        int lastIndex = values.length - 1;
+        if (current.ordinal() >= lastIndex) {
+            return null;
+        }
+        return values[current.ordinal() + 1];
     }
 
     /**
      * 切换模式（由按钮或命令调用，必须在服务器线程）。
-     * 会写入配置持久化，并同步调整世界难度。
+     * 自动演进开启且锁定难度时直接忽略手动调整（命令与按钮均不生效）。
      * <p>
-     * 集成服务器（单机/局域网）上还会同步客户端记忆 CLIENT_MODE，
-     * 保证创建世界界面/选项界面显示的难度与当前生效模式始终一致
-     * （修复 /difficulty 指令、加载已有世界后创建世界界面显示旧难度的问题）。
+     * 实际写入由 {@link #applyMode} 完成。
      */
     public static void setMode(MinecraftServer server, DifficultyLevel mode) {
+        if (DifficultyOverhaulConfig.autoProgressionLockDifficulty()) {
+            return;
+        }
+        applyMode(server, mode);
+    }
+
+    /**
+     * 应用模式的内部实现：写入配置、同步客户端记忆并调整世界难度。
+     * 自动演进的步进与服务器启动沿用配置均从此经过，不受难度锁限制。
+     */
+    private static void applyMode(MinecraftServer server, DifficultyLevel mode) {
         DifficultyOverhaulConfig.setMode(mode);
         if (!server.isDedicatedServer()) {
             DifficultyOverhaulConfig.setClientMode(mode);
@@ -115,6 +206,9 @@ public final class DifficultyOverhaulServer {
         DifficultyLevel mode = DifficultyLevel.byKey(name);
         if (mode == null) {
             throw ERROR_INVALID_MODE.create();
+        }
+        if (DifficultyOverhaulConfig.autoProgressionLockDifficulty()) {
+            throw ERROR_DIFFICULTY_LOCKED.create();
         }
         setMode(context.getSource().getServer(), mode);
         context.getSource().sendSuccess(

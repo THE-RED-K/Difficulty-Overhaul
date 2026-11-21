@@ -1,7 +1,6 @@
 package dev.difficultyoverhaul.mixin;
 
 import dev.difficultyoverhaul.config.DifficultyOverhaulConfig;
-import io.github.lightman314.lightmanscurrency.common.gamerule.ModGameRules;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -57,9 +56,21 @@ public abstract class WorldCreationDefaultsMixin {
             gr.getRule(GameRules.RULE_UNIVERSAL_ANGER).set(DifficultyOverhaulConfig.WORLD_CREATION_UNIVERSAL_ANGER.get(), null);
             // 宽恕死亡玩家：默认由配置决定（默认 false）
             gr.getRule(GameRules.RULE_FORGIVE_DEAD_PLAYERS).set(DifficultyOverhaulConfig.WORLD_CREATION_FORGIVE_DEAD_PLAYERS.get(), null);
-            // 钱包模组 keepWallet：lightmanscurrency 为可选前置，未加载时保持默认
+            // 钱包模组 keepWallet：lightmanscurrency 为可选前置，未加载时保持默认。
+            // 注意：这里必须用反射访问 ModGameRules.KEEP_WALLET，不能出现对 lightmanscurrency
+            // 的字节码级静态引用——Mixin 在织入阶段解析 handler 字节码中的该字段引用时，
+            // 若 lightmanscurrency 未安装（fieldOwner == null）会直接抛 NPE 导致整个 mixin
+            // 应用失败，创建世界界面随之卡死，try/catch 无法捕获（该异常发生在织入期而非运行期）。
             try {
-                gr.getRule(ModGameRules.KEEP_WALLET).set(DifficultyOverhaulConfig.WORLD_CREATION_KEEP_WALLET.get(), null);
+                Class<?> modGameRulesClass = Class.forName("io.github.lightman314.lightmanscurrency.common.gamerule.ModGameRules");
+                Object keepWalletKey = modGameRulesClass.getField("KEEP_WALLET").get(null);
+                if (keepWalletKey instanceof GameRules.Key<?>) {
+                    @SuppressWarnings({"unchecked", "rawtypes"})
+                    Object ruleValue = gr.getRule((GameRules.Key) keepWalletKey);
+                    if (ruleValue instanceof GameRules.BooleanValue rule) {
+                        rule.set(DifficultyOverhaulConfig.WORLD_CREATION_KEEP_WALLET.get(), null);
+                    }
+                }
             } catch (Throwable ignored) {
                 // lightmanscurrency 未加载或无此规则：保持默认即可
             }

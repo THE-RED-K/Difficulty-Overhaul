@@ -21,9 +21,13 @@ public final class DifficultyOverhaulClient {
 
     /**
      * 构建覆盖全部模式的循环按钮，悬停时显示原版风格的模式介绍。
+     * <p>
+     * 自动演进开启且锁定难度时，按钮禁用（不可点击、同时提示锁定原因），
+     * 与服务器侧 {@link DifficultyOverhaulServer#setMode} 的拦截判定保持一致。
      */
     public static CycleButton<DifficultyLevel> createDifficultyButton(int x, int y, Minecraft minecraft) {
         DifficultyLevel current = DifficultyOverhaulConfig.getMode();
+        boolean locked = DifficultyOverhaulConfig.autoProgressionLockDifficulty();
         CycleButton<DifficultyLevel> button = CycleButton.builder(DifficultyLevel::getDisplayName)
                 .withValues(DifficultyLevel.buttonOrder())
                 .withInitialValue(current)
@@ -32,9 +36,14 @@ public final class DifficultyOverhaulClient {
                             clicked.setTooltip(Tooltip.create(mode.getInfo()));
                             selectMode(minecraft, mode);
                         });
-        button.setTooltip(Tooltip.create(current.getInfo()));
+        button.setTooltip(Tooltip.create(
+                locked ? DifficultyOverhaulClient.LOCKED_TOOLTIP : current.getInfo()));
+        button.active = !locked;
         return button;
     }
+
+    private static final Component LOCKED_TOOLTIP =
+            Component.translatable("difficulty_overhaul.difficulty_locked");
 
     private static void selectMode(Minecraft minecraft, DifficultyLevel mode) {
         // 同步客户端记忆（创建世界界面的初始值）

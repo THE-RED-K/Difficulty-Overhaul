@@ -117,6 +117,8 @@ public abstract class CreateWorldScreenGameTabMixin {
                             // 世界难度：和平→和平，其余一律困难（模组内部也按困难判定）
                             uiState.setDifficulty(mode == DifficultyLevel.PEACEFUL ? Difficulty.PEACEFUL : Difficulty.HARD);
                         });
+        // 注意：创建世界界面不锁定难度——这是新世界的初始难度选择，
+        // 不属于"游戏进行中手动调整难度"（后者才受自动演进锁定约束）。
         button.setTooltip(Tooltip.create(init.getInfo()));
 
         if (holder[0] != null) {

@@ -3,15 +3,17 @@ package dev.difficultyoverhaul.config;
 import dev.difficultyoverhaul.DifficultyLevel;
 import net.minecraftforge.common.ForgeConfigSpec;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * 模组通用（COMMON，服务器权威）配置，固定生成在 {@code .minecraft/config} 的
  * {@code difficulty_overhaul-common.toml}，便于整合包作者直接编辑。
  * <p>
- * 包含：当前模式、每个模式的伤害/血量/护甲倍率，
- * 以及三个全局统一倍率开关与对应的全局倍率。
+ * 包含：当前模式、每个模式的伤害/血量/护甲倍率与怪物索敌视野、三个全局统一倍率
+ * 开关与对应的全局倍率，以及模式随进度自动演进的整套开关与生物列表。
  * <p>
  * 说明：采用 COMMON 而非 SERVER——SERVER 会按世界写入存档 serverconfig、且在 config
  * 目录不残留模板；COMMON 让配置固定落在 config 目录。代价是 COMMON 不会自动同步到
@@ -26,6 +28,8 @@ public final class DifficultyOverhaulConfig {
     private static final Map<DifficultyLevel, ForgeConfigSpec.ConfigValue<Double>> DAMAGE_MULTS = new EnumMap<>(DifficultyLevel.class);
     private static final Map<DifficultyLevel, ForgeConfigSpec.ConfigValue<Double>> HEALTH_MULTS = new EnumMap<>(DifficultyLevel.class);
     private static final Map<DifficultyLevel, ForgeConfigSpec.ConfigValue<Double>> ARMOR_MULTS = new EnumMap<>(DifficultyLevel.class);
+    private static final Map<DifficultyLevel, ForgeConfigSpec.ConfigValue<Double>> FOLLOW_RANGES = new EnumMap<>(DifficultyLevel.class);
+    private static final Map<DifficultyLevel, ForgeConfigSpec.ConfigValue<Double>> SPECIAL_MULTIPLIER_FLOORS = new EnumMap<>(DifficultyLevel.class);
 
     /** 三个大开关：开启后所有模式统一使用下方全局倍率 */
     public static final ForgeConfigSpec.BooleanValue GLOBAL_DAMAGE_ENABLED;
@@ -36,12 +40,41 @@ public final class DifficultyOverhaulConfig {
     public static final ForgeConfigSpec.DoubleValue GLOBAL_HEALTH_MULT;
     public static final ForgeConfigSpec.DoubleValue GLOBAL_ARMOR_MULT;
 
-    /** 客户端配置：记住客户端当前选择的模式（创建世界界面与选项界面的初始值） */
+    /**
+     * 僵尸鸡骑士（小僵尸骑乘鸡）的生成概率（0.0~1.0，默认 0.05 即原版 5%）。
+     * 该值同时作用于原版 {@code Zombie#finalizeSpawn} 中
+     * “骑乘附近已有鸡”与“生成新鸡”两处独立掷骰（见实证反编译）。
+     */
+    public static final ForgeConfigSpec.DoubleValue ZOMBIE_CHICKEN_JOCKEY_CHANCE;
+
+    /**
+     * 模式随进度自动演进总开关（默认关闭）。关闭后本小节以下所有配置项全部失效，
+     * 即不会监听 Boss 击杀、不考虑 forge:bosses 标签与自定义生物列表，也不锁定难度。
+     */
+    public static final ForgeConfigSpec.BooleanValue AUTO_PROGRESSION_ENABLED;
+    /**
+     * 击杀拥有 forge:bosses 标签的生物是否触发难度演进（默认开启）。
+     * 该标签由 Forge 预置并在数据包中的 data/forge/tags/entity_types/bosses.json 定义，
+     * 通常包含原版的凋灵/末影龙；整合包（如 RebirthMixins 的追加文件）会在其中追加
+     * 监守者与远古守卫者等。关闭本开关后，只有下方 {@link #AUTO_PROGRESSION_BOSSES}
+     * 列表中的生物能触发演进（即“关掉追加的 Boss”）。
+     */
+    public static final ForgeConfigSpec.BooleanValue AUTO_PROGRESSION_USE_FORGE_BOSSES_TAG;
+    /**
+     * 触发难度演进的额外生物注册 ID 列表（默认空）。击杀列表中任一生物都会应用自动演进，
+     * 不受 forge:bosses 标签开关影响。填写形如 minecraft:wither / modid:boss 的注册 ID。
+     */
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> AUTO_PROGRESSION_BOSSES;
+    /**
+     * 自动演进期间锁定难度（默认开启）：生效时玩家无法手动调整模式
+     * （相当于原版的难度锁按钮开启，命令与按钮都会被拦截），只能由击杀 Boss 自动演进。
+     */
+    public static final ForgeConfigSpec.BooleanValue AUTO_PROGRESSION_LOCK_DIFFICULTY;
+
+    /** 客户端配置（创建世界界面预置、客户端记住的模式）。 */
     public static final ForgeConfigSpec CLIENT_SPEC;
 
-    /** 客户端记住的模式（字符串键） */
-    public static final ForgeConfigSpec.ConfigValue<String> CLIENT_MODE;
-
+    private static final ForgeConfigSpec.ConfigValue<String> CLIENT_MODE;
     /** 创建世界界面游戏规则默认值功能总开关（默认开启） */
     public static final ForgeConfigSpec.BooleanValue WORLD_CREATION_DEFAULTS_ENABLED;
     /** 保留背包 keepInventory 默认值（默认 true） */
@@ -67,13 +100,20 @@ public final class DifficultyOverhaulConfig {
                         "伤害倍率在玩家受伤入口按原版 scalesWithDifficulty() 判定统一放大怪物伤害",
                         "（非玩家生物造成的近战/远程/爆炸，以及火焰/岩浆/仙人掌等 ALWAYS 类伤害；",
                         "玩家间伤害与摔落/溺水等 NEVER 环境伤害不缩放），普通模式即与原版普通难度一致。",
-                        "血量/护甲倍率直接乘以生成时的基础属性值。")
+                        "血量/护甲倍率直接乘以生成时的基础属性值。",
+                        "索敌视野 follow_range 为敌对生物（Monster）生成时的基础索敌距离（格）；",
+                        "默认 16 即与原版一致（不增强），改大即生效，如普通模式改为 40 则普通难度的生物也会按 40 格索敌。")
                 .push("mode_multipliers");
         for (DifficultyLevel level : DifficultyLevel.values()) {
             builder.push(level.getKey());
             DAMAGE_MULTS.put(level, builder.define("damage_multiplier", level.getDefaultDamageMult()));
             HEALTH_MULTS.put(level, builder.define("health_multiplier", level.getDefaultHealthMult()));
             ARMOR_MULTS.put(level, builder.define("armor_multiplier", level.getDefaultArmorMult()));
+            FOLLOW_RANGES.put(level, builder.define("follow_range", level.getDefaultFollowRange()));
+            SPECIAL_MULTIPLIER_FLOORS.put(level, builder.comment("特殊事件倍率下限（0.0~1.0）。",
+                            "所有按原版 getSpecialMultiplier() 缩放的概率值（如僵尸拾取战利品 0.55*f、",
+                            "破门 f*0.1 等）最终取值不低于该下限；GOD 设为 1.0 即概率恒满。")
+                    .defineInRange("special_multiplier_floor", level.getDefaultSpecialMultiplierFloor(), 0.0D, 1.0D));
             builder.pop();
         }
         builder.pop();
@@ -86,6 +126,39 @@ public final class DifficultyOverhaulConfig {
         GLOBAL_DAMAGE_MULT = builder.comment("全局伤害倍率。").defineInRange("damage_multiplier", 1.0D, 0.0D, 100.0D);
         GLOBAL_HEALTH_MULT = builder.comment("全局血量倍率。").defineInRange("health_multiplier", 1.0D, 0.0D, 100.0D);
         GLOBAL_ARMOR_MULT = builder.comment("全局护甲倍率。").defineInRange("armor_multiplier", 1.0D, 0.0D, 100.0D);
+        builder.pop();
+
+        builder.comment("僵尸鸡骑士生成概率（所有模式统一）。",
+                        "原版在 Zombie#finalizeSpawn 中对“骑乘附近已有鸡”与“生成新鸡”分别独立掷骰的概率均为 5%",
+                        "（连续两次 nextFloat() < 0.05D）；此处将两处统一替换为该配置值。",
+                        "设为 0.0 时鸡骑士彻底不再生成，但小僵尸本身不受影响。")
+                .push("zombie");
+        ZOMBIE_CHICKEN_JOCKEY_CHANCE = builder.comment("僵尸鸡骑士生成概率（0.0~1.0，同时作用于骑乘已有鸡/生成新鸡两处掷骰）。")
+                .defineInRange("chicken_jockey_chance", 0.05D, 0.0D, 1.0D);
+        builder.pop();
+
+        builder.comment("模式随进度自动演进：击败 Boss 或列表中的生物后自动提升模式难度。",
+                        "总开关关闭后，本小节其余配置项全部失效。",
+                        "注意：当前模式为和平时自动禁用演进（击杀 Boss 不会提升难度，难度锁同时失效，",
+                        "以便玩家手动切回其他模式）；神明（最高档）封顶不再提升。")
+                .push("auto_progression");
+        AUTO_PROGRESSION_ENABLED = builder
+                .comment("模式随进度自动演进总开关。默认关闭；关闭后本小节其余配置全部失效。")
+                .define("enabled", false);
+        AUTO_PROGRESSION_USE_FORGE_BOSSES_TAG = builder
+                .comment("击杀拥有 forge:bosses 标签的生物是否触发难度演进。默认开启。",
+                        "Forge 预置该标签，整合包可在 data/forge/tags/entity_types/bosses.json 中追加",
+                        "监守者/远古守卫者等自有 Boss；关闭后仅下方 boss_list 中的生物能触发演进。")
+                .define("use_forge_bosses_tag", true);
+        AUTO_PROGRESSION_BOSSES = builder
+                .comment("触发难度演进的生物注册 ID 列表（默认空）。",
+                        "填写形如 minecraft:wither / modid:boss 的注册 ID，击杀列表内生物即应用自动演进，",
+                        "不受 use_forge_bosses_tag 开关影响。")
+                .defineList("boss_list", new ArrayList<>(), element -> element instanceof String);
+        AUTO_PROGRESSION_LOCK_DIFFICULTY = builder
+                .comment("自动演进期间锁定难度：玩家无法手动调整模式（相当于原版的难度锁按钮开启），",
+                        "命令与按钮都会被拦截，只能由击杀 Boss 自动演进。默认开启。")
+                .define("lock_difficulty", true);
         builder.pop();
 
         SPEC = builder.build();
@@ -159,6 +232,67 @@ public final class DifficultyOverhaulConfig {
     /** 某模式最终生效的护甲倍率（全局开关优先）。 */
     public static double armorMult(DifficultyLevel level) {
         return GLOBAL_ARMOR_ENABLED.get() ? GLOBAL_ARMOR_MULT.get() : ARMOR_MULTS.get(level).get();
+    }
+
+    /**
+     * 某模式生效的怪物索敌视野（格）。
+     * <p>
+     * 判定以配置值为准：默认 16 即与原版一致（不增强），玩家改大即增强——
+     * 例如把普通模式的 follow_range 从 16 改为 40，普通难度的敌对生物也会
+     * 按 40 格索敌。不提供全局开关，避免破坏逐模式语义。
+     */
+    public static double followRange(DifficultyLevel level) {
+        return FOLLOW_RANGES.get(level).get();
+    }
+
+    /**
+     * 某模式生效的“特殊事件倍率下限”。
+     * <p>
+     * 原版 {@code DifficultyInstance#getSpecialMultiplier()} 由有效难度换算：
+     * eff 在 [2.0, 4.0] 内线性插值，超出两端分别封底 0.0 / 封顶 1.0。
+     * 本模组在 {@code DifficultyInstanceMixin} 中将其结果与该下限取 max，
+     * 从而保证即使区块没被长期驻留，各类“特殊事件”概率也不会低于该值
+     * （GOD 默认 1.0 即概率恒满；CASUAL/PEACEFUL 默认 0.0 即无保底）。
+     */
+    public static double specialMultiplierFloor(DifficultyLevel level) {
+        return SPECIAL_MULTIPLIER_FLOORS.get(level).get();
+    }
+
+    /** 僵尸鸡骑士生成概率（0.0~1.0，全局统一）。 */
+    public static double zombieChickenJockeyChance() {
+        return ZOMBIE_CHICKEN_JOCKEY_CHANCE.get();
+    }
+
+    /** 模式随进度自动演进总开关是否开启。 */
+    public static boolean autoProgressionEnabled() {
+        return AUTO_PROGRESSION_ENABLED.get();
+    }
+
+    /**
+     * 自动演进当前是否实际生效：总开关开启且当前模式不是和平。
+     * 和平模式下自动禁用演进（不会因击杀 Boss 提升难度），
+     * 同时难度锁同步失效，允许玩家手动切换回其他模式。
+     */
+    public static boolean autoProgressionActive() {
+        return autoProgressionEnabled() && getMode() != DifficultyLevel.PEACEFUL;
+    }
+
+    /** 是否采用 forge:bosses 标签判定触发演进（未激活时恒为 false）。 */
+    public static boolean useForgeBossesTag() {
+        return autoProgressionActive() && AUTO_PROGRESSION_USE_FORGE_BOSSES_TAG.get();
+    }
+
+    /** 触发演进的额外生物注册 ID 列表（未激活时为空列表）。 */
+    public static List<? extends String> autoProgressionBosses() {
+        if (!autoProgressionActive()) {
+            return List.of();
+        }
+        return AUTO_PROGRESSION_BOSSES.get();
+    }
+
+    /** 自动演进期间是否锁定手动调整难度（未激活时恒为 false）。 */
+    public static boolean autoProgressionLockDifficulty() {
+        return autoProgressionActive() && AUTO_PROGRESSION_LOCK_DIFFICULTY.get();
     }
 
     /** 客户端记住的模式，解析失败时回退到普通。 */

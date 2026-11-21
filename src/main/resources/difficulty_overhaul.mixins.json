@@ -8,7 +8,9 @@
     "DifficultyInstanceMixin",
     "DifficultyCommandMixin",
     "MobMixin",
-    "PlayerHurtMixin"
+    "NearestAttackableTargetGoalMixin",
+    "PlayerHurtMixin",
+    "ZombieMixin"
   ],
   "client": [
     "OptionsScreenMixin",
