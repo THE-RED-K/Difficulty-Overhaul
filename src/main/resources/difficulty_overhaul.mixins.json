@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.difficultyoverhaul.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "DifficultyInstanceMixin",
+    "DifficultyCommandMixin",
+    "MobMixin",
+    "NearestAttackableTargetGoalMixin",
+    "PlayerHurtMixin",
+    "ZombieMixin"
+  ],
+  "client": [
+    "OptionsScreenMixin",
+    "CreateWorldScreenMixin",
+    "CreateWorldScreenGameTabMixin",
+    "WorldCreationDefaultsMixin",
+    "GridLayoutAccessor",
+    "GridLayoutTabAccessor",
+    "GridLayoutCellInhabitantAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
